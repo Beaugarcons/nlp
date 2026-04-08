@@ -1,6 +1,15 @@
-streamlit
-spacy
+# 锁定 numpy 版本以避免二进制冲突
+numpy<2.0.0
+
+# 基础 NLP 库
+spacy>=3.7.0
+thinc>=8.2.0
 requests
 fastcoref
 spacy-transformers
+
+# 预下载 spacy 模型（这一行非常重要，防止云端运行时动态下载失败）
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
+
+# Streamlit
+streamlit
