@@ -1,0 +1,5 @@
+streamlit
+spacy
+requests
+fastcoref
+spacy-transformers
