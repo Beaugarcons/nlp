@@ -1,6 +1,7 @@
 streamlit
 nltk
 torch
+torchvision
 transformers
 pandas
 numpy
