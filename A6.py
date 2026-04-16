@@ -35,8 +35,18 @@ st.markdown("""
 # 初始化数据
 @st.cache_resource
 def init_resources():
-    nltk.download('punkt')
-    # 加载蒸馏版模型以节省内存
+    # 修复 NLTK 资源缺失问题
+    try:
+        nltk.data.find('tokenizers/punkt')
+    except LookupError:
+        nltk.download('punkt')
+        
+    try:
+        nltk.data.find('tokenizers/punkt_tab')
+    except LookupError:
+        nltk.download('punkt_tab')
+
+    # 加载模型
     bert = pipeline("fill-mask", model="distilbert-base-uncased")
     gpt2_pipe = pipeline("text-generation", model="distilgpt2")
     gpt2_model = GPT2LMHeadModel.from_pretrained("distilgpt2")
@@ -137,10 +147,10 @@ with tab3:
 # --- 模块 4: PPL 评价 ---
 with tab4:
     st.subheader("语言模型评价：困惑度 (Perplexity)")
-    st.markdown("""
+    st.markdown(r"""
     <div class="theory-box">
     <b>公式：</b> $PPL = \exp(Loss)$ <br>
-    PPL 越低，说明模型对该句子的“惊讶程度”越低，即该句子越符合自然语言规律。
+    PPL 越低，说明模型对该句子的“惊讶程度”越低。
     </div>
     """, unsafe_allow_html=True)
     
