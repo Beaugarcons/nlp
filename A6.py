@@ -128,7 +128,7 @@ with tab2:
         h_size = st.slider("记忆维度 (Hidden Size)", 16, 128, 64, help="数值越大，模型“记忆力”越强，但也更容易过拟合。")
         epochs = st.slider("复习轮数 (Epochs)", 10, 500, 100, help="模型对这段话重复阅读的次数。")
         lr = st.number_input("学习率 (Learning Rate)", 0.001, 0.1, 0.01, format="%.3f")
-        start_train = st.button("开始教电脑读书", use_container_width=True)
+        start_train = st.button("开始训练", use_container_width=True)
 
     with col_p2:
         st.markdown('<p class="step-header">Step 3: 观察学习过程</p>', unsafe_allow_html=True)
