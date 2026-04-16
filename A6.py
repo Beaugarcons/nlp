@@ -55,7 +55,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["📊 n-gram 统计", "🧠 RNN 序列记忆",
 
 # --- Tab 1: n-gram ---
 with tab1:
-    st.subheader("1. 统计学接龙：n-gram 模型")
+    st.subheader("1. n-gram 语言模型与平滑")
     st.markdown("""
     <div class="theory-box">
     <b>💡 原理：</b> 就像玩“成语接龙”，模型通过统计过去词语出现的规律来预测下一个词。<br>
@@ -72,11 +72,11 @@ with tab1:
             "文学名句": "to be or not to be that is the question. stay hungry stay foolish."
         }
         selected = st.selectbox("👉 选择预设参考语料（知识库）", options=list(corpus_options.keys()))
-        corpus_text = st.text_area("知识库内容", corpus_options[selected], height=100)
+        corpus_text = st.text_area("基础语料 (English)", corpus_options[selected], height=100)
     
     with c2:
         test_options = ["artificial intelligence", "the weather is nice", "stay hungry"]
-        test_sent = st.selectbox("👉 选择或输入测试句", options=test_options, index=0)
+        test_sent = st.selectbox("待测句子", options=test_options, index=0)
         use_smooth = st.checkbox("开启平滑（防止遇到生词时概率变0）", value=True)
 
     # 计算逻辑
@@ -96,42 +96,120 @@ with tab1:
         prob *= p
         details.append({"片段": " ".join(tri), "出现次数": c_tri, "条件概率": f"{p:.4f}"})
     
-    st.markdown(f'<div class="stat-card"><div class="stat-val">全句合理性得分：{prob:.8f}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="stat-card"><div class="stat-val">联合概率：{prob:.8f}</div></div>', unsafe_allow_html=True)
     if details: st.table(pd.DataFrame(details))
 
-# --- Tab 2: RNN ---
+# --- 模块 2: RNN 训练 ---
 with tab2:
-    st.subheader("2. 仿生记忆：RNN 递归神经网络")
+    st.subheader("2. 字符级 RNN 极简训练器")
+    
     st.markdown("""
     <div class="theory-box">
-    <b>💡 原理：</b> 模拟人类的“短期记忆”。模型每读一个字，都会更新自己的“脑部状态”，并带着记忆去读下一个字。<br>
-    <b>🎯 目的：</b> 让电脑处理有先后顺序的信息，比如理解一段话的因果关系。<br>
-    <b>📉 结果：</b> 损失值(Loss)越低，说明模型“背书”背得越熟。
+    <b>🎯 目的：</b> 我们正在构建一个简单的递归神经网络（RNN）。它不看整个词，而是逐个字符地“阅读”文本。<br>
+    <b>💡 原理：</b> RNN 的核心在于它拥有“隐藏状态”（Hidden State），就像人类的短期记忆。它每读一个字母，都会更新记忆，从而学会预测下一个字母。<br>
+    <b>📈 结果：</b> 随着训练轮数（Epochs）增加，损失值（Loss）会下降。这代表模型背后的数学矩阵正在逐步逼近你输入的文本规律。<br>
+    <b>🔨作用：</b> 这是现代 AI 处理序列数据（如文字、语音、股票走势）的祖先模型。
     </div>
     """, unsafe_allow_html=True)
+
+    col_p1, col_p2 = st.columns([1, 2])
     
-    col_a, col_b = st.columns(2)
-    with col_a:
-        rnn_samples = {
+    with col_p1:
+        st.markdown('<p class="step-header">Step 1: 准备训练数据</p>', unsafe_allow_html=True)
+        rnn_corpus = {
             "简单重复": "hello world hello world",
-            "代码逻辑": "if x > 0: print(x) else: print(0)",
-            "诗歌节选": "deep in the forest a bird sings softly."
+            "代码模式": "for i in range(10): print(i)",
+            "科学定义": "deep learning is a subset of machine learning."
         }
-        rnn_input = st.selectbox("👉 选择训练材料", options=list(rnn_samples.keys()))
-        text_to_train = st.text_area("训练文本", rnn_samples[rnn_input])
-    
-    with col_b:
-        epochs = st.slider("模型复习次数 (Epochs)", 10, 100, 50)
-        if st.button("开始教电脑读书"):
-            st.info("模型正在‘反复诵读’中...")
-            chart_placeholder = st.empty()
-            losses = np.exp(-np.linspace(0, 2, epochs)) + np.random.normal(0, 0.02, epochs)
-            chart_placeholder.line_chart(losses)
-            st.success("教完了！现在模型已经对这段话有了初步记忆。")
+        selected_rnn = st.selectbox("选择参考语料", options=list(rnn_corpus.keys()))
+        raw_text = st.text_area("训练语料编辑器", rnn_corpus[selected_rnn], height=100)
+        
+        st.markdown('<p class="step-header">Step 2: 设置超参数</p>', unsafe_allow_html=True)
+        h_size = st.slider("记忆维度 (Hidden Size)", 16, 128, 64, help="数值越大，模型“记忆力”越强，但也更容易过拟合。")
+        epochs = st.slider("复习轮数 (Epochs)", 10, 500, 100, help="模型对这段话重复阅读的次数。")
+        lr = st.number_input("学习率 (Learning Rate)", 0.001, 0.1, 0.01, format="%.3f")
+        start_train = st.button("开始教电脑读书", use_container_width=True)
+
+    with col_p2:
+        st.markdown('<p class="step-header">Step 3: 观察学习过程</p>', unsafe_allow_html=True)
+        if start_train:
+            # 数据预处理
+            chars = sorted(list(set(raw_text)))
+            char_to_ix = {ch: i for i, ch in enumerate(chars)}
+            ix_to_char = {i: ch for i, ch in enumerate(chars)}
+            vocab_size = len(chars)
+            
+            # 构造输入输出 (预测下一个字符)
+            inputs = [char_to_ix[ch] for ch in raw_text[:-1]]
+            targets = [char_to_ix[ch] for ch in raw_text[1:]]
+            
+            # 转换格式：(序列长度, Batch, 特征维度)
+            X = torch.LongTensor(inputs).view(-1, 1) 
+            Y = torch.LongTensor(targets)
+
+            # 简单的编码模型
+            class SimpleRNN(nn.Module):
+                def __init__(self, v_size, h_size):
+                    super().__init__()
+                    self.embed = nn.Embedding(v_size, h_size)
+                    self.rnn = nn.RNN(h_size, h_size, batch_first=True)
+                    self.fc = nn.Linear(h_size, v_size)
+                
+                def forward(self, x, h):
+                    x = self.embed(x)
+                    out, h = self.rnn(x, h)
+                    out = self.fc(out)
+                    return out, h
+
+            model = SimpleRNN(vocab_size, h_size)
+            optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+            criterion = nn.CrossEntropyLoss()
+
+            loss_hist = []
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            chart = st.line_chart()
+
+            # 训练循环
+            for epoch in range(epochs):
+                hidden = torch.zeros(1, 1, h_size)
+                output, hidden = model(X.unsqueeze(0), hidden)
+                
+                loss = criterion(output.squeeze(0), Y)
+                
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                
+                loss_hist.append(loss.item())
+                if epoch % 10 == 0 or epoch == epochs-1:
+                    chart.line_chart(loss_hist)
+                    progress_bar.progress((epoch + 1) / epochs)
+                    status_text.text(f"当前训练轮数: {epoch+1}/{epochs} | Loss: {loss.item():.4f}")
+            
+            st.success("训练完成！模型已尝试记住该序列。")
+            
+            # 模型推理演示
+            st.markdown('<p class="step-header">Step 4: 测试生成能力</p>', unsafe_allow_html=True)
+            with torch.no_grad():
+                test_char = raw_text[0]
+                result = test_char
+                input_eval = torch.LongTensor([char_to_ix[test_char]]).view(1, 1)
+                hidden = torch.zeros(1, 1, h_size)
+                
+                for _ in range(min(len(raw_text), 30)):
+                    out, hidden = model(input_eval, hidden)
+                    idx = torch.argmax(out).item()
+                    result += ix_to_char[idx]
+                    input_eval = torch.LongTensor([idx]).view(1, 1)
+                
+                st.write("🤖 模型尝试续写结果：")
+                st.code(result)
+                st.caption("提示：由于模型极其微小且语料极少，生成结果可能在几个字符后陷入循环。")
 
 # --- Tab 3: BERT vs GPT ---
 with tab3:
-    st.subheader("3. 完形填空 vs. 文章续写：架构对比")
+    st.subheader("3. BERT (双向) vs GPT-2 (自回归)")
     st.markdown("""
     <div class="theory-box">
     <b>🤖 BERT (双向):</b> 像做填空题。它同时看左边和右边的词，精准猜出中间挖掉的词是什么。<br>
@@ -168,7 +246,7 @@ with tab3:
 
 # --- Tab 4: PPL ---
 with tab4:
-    st.subheader("4. 丝滑程度：困惑度 (Perplexity)")
+    st.subheader("4. 基于 GPT-2 的困惑度计算(Perplexity)")
     st.markdown(r"""
     <div class="theory-box">
     <b>💡 原理：</b> 衡量模型对句子的“意外程度”。<br>
