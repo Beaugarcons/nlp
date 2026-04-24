@@ -2,9 +2,10 @@ import streamlit as st
 import pandas as pd
 import spacy
 import re
-from streamlit_echarts import st_echarts
+from pyvis.network import Network
+import streamlit.components.v1 as components
 
-# 必须第一行
+
 st.set_page_config(page_title="信息抽取与知识图谱系统", layout="wide")
 
 # -----------------------------
@@ -153,9 +154,8 @@ def extract_joint_like(text):
 # -----------------------------
 # 模块3：知识图谱
 # -----------------------------
-def build_graph(entities, relations):
-    nodes = []
-    edges = []
+def show_graph(entities, relations):
+    net = Network(height="500px", width="100%", directed=True)
 
     color_map = {
         "PERSON": "#ffb74d",
@@ -164,22 +164,26 @@ def build_graph(entities, relations):
         "LOC": "#64b5f6"
     }
 
+    # 节点
     for ent in entities:
-        nodes.append({
-            "name": ent["text"],
-            "value": ent["label"],
-            "symbolSize": 50,
-            "itemStyle": {"color": color_map.get(ent["label"], "#e57373")}
-        })
+        net.add_node(
+            ent["text"],
+            label=ent["text"],
+            color=color_map.get(ent["label"], "#e57373")
+        )
 
+    # 边
     for rel in relations:
-        edges.append({
-            "source": rel["source"],
-            "target": rel["target"],
-            "label": {"show": True, "formatter": rel["relation"]}
-        })
+        net.add_edge(
+            rel["source"],
+            rel["target"],
+            title=rel["relation"]
+        )
 
-    return nodes, edges
+    net.save_graph("graph.html")
+
+    with open("graph.html", "r", encoding="utf-8") as f:
+        components.html(f.read(), height=550)
 
 # -----------------------------
 # 页面
@@ -226,20 +230,4 @@ else:
 # 模块3展示
 # -----------------------------
 st.subheader("知识图谱")
-
-nodes, edges = build_graph(entities, relations)
-
-option = {
-    "tooltip": {},
-    "series": [{
-        "type": "graph",
-        "layout": "force",
-        "data": nodes,
-        "links": edges,
-        "roam": True,
-        "label": {"show": True},
-        "force": {"repulsion": 200}
-    }]
-}
-
-st_echarts(option)
+show_graph(entities, relations)

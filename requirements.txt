@@ -1,4 +1,4 @@
 streamlit
-spacy==3.7.2
+spacy
 pandas
-streamlit-echarts
+pyvis
