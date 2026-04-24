@@ -12,7 +12,14 @@ st.set_page_config(page_title="信息抽取与知识图谱系统", layout="wide"
 # -----------------------------
 @st.cache_resource
 def load_model():
-    return spacy.load("en_core_web_sm")
+    import spacy
+    from spacy.cli import download
+
+    try:
+        return spacy.load("en_core_web_sm")
+    except:
+        download("en_core_web_sm")
+        return spacy.load("en_core_web_sm")
 
 nlp = load_model()
 
