@@ -77,13 +77,11 @@ def highlight_text(text, entities):
 def extract_relations_pipeline(text, entities):
     relations = []
 
-    # 关键词模式（比简单规则更像“模型”）
-    patterns = [
-        (r"founded|co-founded", "FOUNDER_OF"),
-        (r"CEO|chief executive", "CEO_OF"),
-        (r"works at|worked at", "WORKS_FOR"),
-        (r"located in|based in", "LOCATED_IN"),
-        (r"born in", "BORN_IN")
+    relation_rules = [
+        ("FOUNDER_OF", ["PERSON"], ["ORG"], ["founded", "co-founded"]),
+        ("CEO_OF", ["PERSON"], ["ORG"], ["ceo", "chief executive"]),
+        ("LOCATED_IN", ["ORG"], ["GPE", "LOC"], ["in", "based in", "located in"]),
+        ("BORN_IN", ["PERSON"], ["GPE", "LOC"], ["born in"])
     ]
 
     for i in range(len(entities)):
@@ -94,56 +92,82 @@ def extract_relations_pipeline(text, entities):
             e1 = entities[i]
             e2 = entities[j]
 
-            span_text = text[e1["start"]:e2["end"]]
+            # 限制距离（关键）
+            if abs(e1["start"] - e2["start"]) > 80:
+                continue
 
-            for pattern, label in patterns:
-                if re.search(pattern, text, re.IGNORECASE):
-                    relations.append({
-                        "source": e1["text"],
-                        "target": e2["text"],
-                        "relation": label
-                    })
+            # 只看中间文本
+            if e1["start"] < e2["start"]:
+                middle_text = text[e1["end"]:e2["start"]].lower()
+            else:
+                middle_text = text[e2["end"]:e1["start"]].lower()
 
-    return relations
+            for rel, subj_types, obj_types, keywords in relation_rules:
+                if e1["label"] in subj_types and e2["label"] in obj_types:
+                    if any(k in middle_text for k in keywords):
+                        relations.append((e1["text"], e2["text"], rel))
+
+    # 👉 去重
+    relations = list(set(relations))
+
+    return [
+        {"source": s, "target": t, "relation": r}
+        for s, t, r in relations
+    ]
 
 # -----------------------------
 # 模块2（伪Joint版本）
 # -----------------------------
-def extract_joint_like(text):
-    """
-    看起来像 Joint：
-    实际 = NER + 规则融合
-    """
-    entities = extract_entities(text)
-
+def extract_joint_like_fixed(text, entities):
     relations = []
 
-    for sent in nlp(text).sents:
-        sent_text = sent.text
+    # 关系定义（带类型约束）
+    relation_rules = [
+        ("FOUNDER_OF", ["PERSON"], ["ORG"], ["founded", "co-founded"]),
+        ("CEO_OF", ["PERSON"], ["ORG"], ["CEO", "chief executive"]),
+        ("LOCATED_IN", ["ORG"], ["GPE", "LOC"], ["in", "based in", "located in"]),
+        ("BORN_IN", ["PERSON"], ["GPE", "LOC"], ["born in"])
+    ]
 
-        sent_entities = [e for e in entities if e["start"] >= sent.start_char and e["end"] <= sent.end_char]
+    for i in range(len(entities)):
+        for j in range(len(entities)):
+            if i == j:
+                continue
 
-        for i in range(len(sent_entities)):
-            for j in range(i+1, len(sent_entities)):
-                e1 = sent_entities[i]
-                e2 = sent_entities[j]
+            e1 = entities[i]
+            e2 = entities[j]
 
-                if "founded" in sent_text:
-                    rel = "FOUNDER_OF"
-                elif "CEO" in sent_text:
-                    rel = "CEO_OF"
-                elif "in" in sent_text:
-                    rel = "LOCATED_IN"
-                else:
-                    rel = "RELATED_TO"
+            # 👉 限制距离（关键！）
+            if abs(e1["start"] - e2["start"]) > 80:
+                continue
 
-                relations.append({
-                    "source": e1["text"],
-                    "target": e2["text"],
-                    "relation": rel
-                })
+            # 👉 只看中间文本（核心）
+            if e1["start"] < e2["start"]:
+                middle_text = text[e1["end"]:e2["start"]]
+            else:
+                middle_text = text[e2["end"]:e1["start"]]
 
-    return entities, relations
+            middle_text = middle_text.lower()
+
+            # 👉 匹配规则
+            for rel, subj_types, obj_types, keywords in relation_rules:
+                if e1["label"] in subj_types and e2["label"] in obj_types:
+                    if any(k in middle_text for k in keywords):
+                        relations.append({
+                            "source": e1["text"],
+                            "target": e2["text"],
+                            "relation": rel
+                        })
+
+    relations = list({
+        (r["source"], r["target"], r["relation"])
+        for r in relations
+    })
+
+    return [
+        {"source": s, "target": t, "relation": r}
+        for s, t, r in relations
+    ]
 
 # -----------------------------
 # 模块3：知识图谱
@@ -169,10 +193,11 @@ def show_graph(entities, relations):
     # 边
     for rel in relations:
         net.add_edge(
-            rel["source"],
-            rel["target"],
-            title=rel["relation"]
-        )
+        rel["source"],
+        rel["target"],
+        title=rel["relation"],
+        label=rel["relation"]   # 👈 加这个
+    )
 
     net.save_graph("graph.html")
 
