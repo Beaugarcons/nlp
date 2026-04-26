@@ -124,7 +124,7 @@ def extract_joint_like_fixed(text, entities):
     # 关系定义（带类型约束）
     relation_rules = [
         ("FOUNDER_OF", ["PERSON"], ["ORG"], ["founded", "co-founded"]),
-        ("CEO_OF", ["PERSON"], ["ORG"], ["CEO", "chief executive"]),
+        ("CEO_OF", ["PERSON"], ["ORG"], ["ceo", "chief executive"]),
         ("LOCATED_IN", ["ORG"], ["GPE", "LOC"], ["in", "based in", "located in"]),
         ("BORN_IN", ["PERSON"], ["GPE", "LOC"], ["born in"])
     ]
@@ -222,7 +222,8 @@ if mode == "Pipeline":
     entities = extract_entities(text)
     relations = extract_relations_pipeline(text, entities)
 else:
-    entities, relations = extract_joint_like(text)
+    entities = extract_entities(text)
+    relations = extract_joint_like_fixed(text, entities)
 
 # -----------------------------
 # 模块1展示
