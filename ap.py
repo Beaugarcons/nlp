@@ -84,13 +84,21 @@ def extract_relations_pipeline(text, entities):
         ("BORN_IN", ["PERSON"], ["GPE", "LOC"], ["born in"])
     ]
 
-    for i in range(len(entities)):
-        for j in range(len(entities)):
-            if i == j:
-                continue
+    doc = nlp(text)
 
-            e1 = entities[i]
-            e2 = entities[j]
+    for sent in doc.sents:
+        sent_entities = [
+            e for e in entities
+            if e["start"] >= sent.start_char and e["end"] <= sent.end_char
+        ]
+
+        for i in range(len(sent_entities)):
+            for j in range(len(sent_entities)):
+                if i == j:
+                    continue
+
+                e1 = sent_entities[i]
+                e2 = sent_entities[j]
 
             # 限制距离（关键）
             if abs(e1["start"] - e2["start"]) > 80:
@@ -129,13 +137,21 @@ def extract_joint_like_fixed(text, entities):
         ("BORN_IN", ["PERSON"], ["GPE", "LOC"], ["born in"])
     ]
 
-    for i in range(len(entities)):
-        for j in range(len(entities)):
-            if i == j:
-                continue
+    doc = nlp(text)
 
-            e1 = entities[i]
-            e2 = entities[j]
+    for sent in doc.sents:
+        sent_entities = [
+            e for e in entities
+            if e["start"] >= sent.start_char and e["end"] <= sent.end_char
+        ]
+
+        for i in range(len(sent_entities)):
+            for j in range(len(sent_entities)):
+                if i == j:
+                    continue
+
+                e1 = sent_entities[i]
+                e2 = sent_entities[j]
 
             # 👉 限制距离（关键！）
             if abs(e1["start"] - e2["start"]) > 80:
