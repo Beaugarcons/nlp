@@ -166,7 +166,7 @@ def show_graph(entities, relations):
 # -----------------------------
 st.title("🕸️ 信息抽取与知识图谱构建系统")
 
-default_text = "Steve Jobs founded Apple in California. Tim Cook is the CEO of Apple. Bill Gates was born in Seattle."
+default_text = "Steve Jobs and Steve Wozniak founded Apple in California. Later, Tim Cook became the CEO of Apple. Meanwhile, Bill Gates, who was born in Seattle, founded Microsoft."
 text = st.text_area("请输入要分析的文本 (英文)", default_text, height=100)
 
 if text:
