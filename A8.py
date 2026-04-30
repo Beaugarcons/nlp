@@ -1,3 +1,5 @@
+import os
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 import streamlit as st
 from transformers import pipeline
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
@@ -10,10 +12,17 @@ st.set_page_config(page_title="机器翻译对比与评测系统", layout="wide"
 
 @st.cache_resource
 def load_nmt():
-    return pipeline(
-        task="translation",
-        model="Helsinki-NLP/opus-mt-en-zh"
-    )
+    try:
+        translator = pipeline(
+            task="translation",
+            model="Helsinki-NLP/opus-mt-en-zh"
+        )
+        return translator
+    except Exception as e:
+        st.error(f"模型加载失败: {e}")
+        return None
+
+translator = load_nmt()
 
 # -----------------------------
 # 简单规则翻译（逐词直译）
