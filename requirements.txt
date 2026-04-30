@@ -1,7 +1,5 @@
 streamlit
-nltk
-torch
-torchvision
 transformers
-pandas
-numpy
+torch
+nltk
+deep-translator
