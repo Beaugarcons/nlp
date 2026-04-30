@@ -7,11 +7,13 @@ st.set_page_config(page_title="机器翻译对比与评测系统", layout="wide"
 # -----------------------------
 # 缓存模型（避免重复加载）
 # -----------------------------
+
 @st.cache_resource
 def load_nmt():
-    return pipeline("translation_en_to_zh", model="Helsinki-NLP/opus-mt-en-zh")
-
-translator = load_nmt()
+    return pipeline(
+        task="translation",
+        model="Helsinki-NLP/opus-mt-en-zh"
+    )
 
 # -----------------------------
 # 简单规则翻译（逐词直译）
