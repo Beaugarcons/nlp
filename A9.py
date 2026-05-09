@@ -3,9 +3,6 @@ import random
 import plotly.graph_objects as go
 from transformers import pipeline
 
-# ======================
-# 页面配置（必须放最前）
-# ======================
 st.set_page_config(page_title="细粒度情感分析与舆情监测平台", layout="wide")
 
 # ======================
@@ -59,7 +56,19 @@ tab1, tab2, tab3 = st.tabs([
 with tab1:
     st.subheader("单文本情感分析")
 
-    text = st.text_area("请输入一段商品评论")
+    # 示例数据
+    examples = [
+        "这个产品真的很好用，性价比很高",
+        "质量太差了，用两天就坏了",
+        "一般般，没有特别惊艳",
+        "外观很好看，但是性能一般",
+        "客服态度很好，物流也很快"
+    ]
+
+    selected_example = st.selectbox("选择示例（可选）", [""] + examples)
+
+    # 输入框（自动填充）
+    text = st.text_area("请输入评论", value=selected_example)
 
     if st.button("开始分析"):
         if text:
@@ -80,10 +89,35 @@ with tab2:
     隐式情感：不包含情绪词，但通过事实表达情绪（如“用半小时就没电了”）
     """)
 
+    # 示例
+    explicit_examples = [
+        "这屏幕画质太垃圾了",
+        "真的非常好用，太棒了",
+        "质量差得离谱"
+    ]
+
+    implicit_examples = [
+        "在太阳底下根本看不清屏幕",
+        "手机玩游戏半小时就没电了",
+        "用了几天开始卡顿"
+    ]
+
     col1, col2 = st.columns(2)
 
+    # ======================
+    # 显式情感
+    # ======================
     with col1:
-        explicit_text = st.text_area("显式情感评价")
+        selected_explicit = st.selectbox(
+            "显式情感示例",
+            [""] + explicit_examples,
+            key="exp"
+        )
+
+        explicit_text = st.text_area(
+            "显式情感评价",
+            value=selected_explicit
+        )
 
         if st.button("分析显式情感"):
             if explicit_text:
@@ -91,8 +125,20 @@ with tab2:
                 st.write("结果：", label)
                 st.write("置信度：", score)
 
+    # ======================
+    # 隐式情感
+    # ======================
     with col2:
-        implicit_text = st.text_area("隐式客观描述")
+        selected_implicit = st.selectbox(
+            "隐式情感示例",
+            [""] + implicit_examples,
+            key="imp"
+        )
+
+        implicit_text = st.text_area(
+            "隐式客观描述",
+            value=selected_implicit
+        )
 
         if st.button("分析隐式情感"):
             if implicit_text:
